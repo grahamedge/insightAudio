@@ -1,27 +1,36 @@
-from flask import render_template
-from flask import request
-from string import Template as str_template
-from Flask_Frontend import app
-from sqlalchemy import create_engine
-from sqlalchemy_utils import database_exists, create_database
+#third party libraries
 import pandas as pd
 import psycopg2
 import mpld3
 
-from Audio.summarize_cluster_labels import get_minute_labels, plot_clustered_waveform_html
+#third party functions
+from flask import render_template
+from flask import request
+from Flask_Frontend import app
+from sqlalchemy import create_engine
+from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import text
 
+#database info
+from SQL import settingsAWS
+
+#homebuilt functions
+from Audio.summarize_cluster_labels import get_minute_labels, plot_clustered_waveform_html
 import flask_functions as ff
 
-from a_Model import ModelIt
 
-#Replace with a load of an init file (keep database info separate)
-user = 'graham'
-host = 'localhost'
-dbname = 'teaching_videos'
-db = create_engine('postgres://%s%s%s' % (user, host, dbname))
-con = None
-con = psycopg2.connect(database = dbname, user = user)
+#Create database engine
+engine = create_engine(settingsAWS.DATABASE_URI, echo=False)
+Session = sessionmaker(bind=engine)
+dbsession = Session()
 
+# user = 'graham'
+# host = 'localhost'
+# dbname = 'teaching_videos'
+# db = create_engine('postgres://%s%s%s' % (user, host, dbname))
+# con = None
+# con = psycopg2.connect(database = dbname, user = user)
 
 @app.route('/')
 @app.route('/index')
@@ -41,7 +50,8 @@ def serve_video_features():
 		yt_id = request.args.get('yt_id')
 		sql_query = "SELECT * from video_summary WHERE youtube_id = %(yt_id)s"
 		data = {'yt_id': str(yt_id)}	
-		query_results = pd.read_sql_query(sql_query, con, params = data)
+		with engine.connect() as con:
+			query_results = pd.read_sql_query(sql_query, con, params = data)
 		if query_results.empty:
 			empty_dict = True
 			results_dict = ff.empty_results_dict()
@@ -49,8 +59,8 @@ def serve_video_features():
 			empty_dict = False
 			results_dict = query_results.to_dict(orient = 'list')
 	except:
-		print('No youtube id!')
-		print('Went there')
+		#error retrieving video data from database...
+		#	most likely the video has not been processed!
 		empty_dict = True
 		results_dict = ff.empty_results_dict()
 
@@ -82,6 +92,10 @@ def serve_video_features():
 
 	fig_html = plot_clustered_waveform_html(yt_id)
 
+
+	#could also have the plot cue up when the short interactions
+	#	are clicked on!!!
+
 	#return a rendered html with the dictionary as an input
 	return render_template('summary_table.html', 
 					 results = results_dict, url = embed_url,
@@ -93,7 +107,8 @@ def serve_bonus_video():
 	
 	#get the list of all processed youtube videos
 	sql_query = "SELECT youtube_id from video_summary"
-	query_results = pd.read_sql_query(sql_query, con)
+	with engine.connect() as con:
+		query_results = pd.read_sql_query(sql_query, con)
 	youtube_id_dict = query_results.to_dict(orient = 'list')
 	
 	#check for one video that is selected:
@@ -102,7 +117,8 @@ def serve_bonus_video():
 
 		sql_query = "SELECT * from video_summary WHERE youtube_id = %(yt_id)s"
 		data = {'yt_id': yt_id}	
-		query_results = pd.read_sql_query(sql_query, con, params = data)
+		with engine.connect() as con:
+			query_results = pd.read_sql_query(sql_query, con, params = data)
 		results_dict = query_results.to_dict(orient = 'list')
 	except:
 		results_dict = empty_results_dict()

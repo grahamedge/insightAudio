@@ -269,22 +269,24 @@ def visualize_classification_clusters(clusters, features, teacher_times, student
 
 	fontsize = 20
 	titlesize = fontsize+4
+	pointsize = 4
 
 	plt.figure(figsize = (16,8))
-	plt.subplot(121)
-	plt.plot(plot_features[teacher_times,0],
-		plot_features[teacher_times,1],'.r')
-	plt.plot(plot_features[student_times,0],
-		plot_features[student_times,1], '.k')
+	ax1 = plt.subplot(121)
+	ax1.scatter(plot_features[teacher_times,0],
+		plot_features[teacher_times,1],'.r',s=4)
+	ax1.scatter(plot_features[student_times,0],
+		plot_features[student_times,1], '.k', s=4)
 	plt.xlabel('Audio Feature A', fontsize = fontsize)
 	plt.ylabel('Audio Feature B', fontsize = fontsize)
 	plt.title('Labelled Data', fontsize = titlesize)
+	plt.legend()
 
-	plt.subplot(122)
-	plt.plot(plot_features[teacher_class,0],
-		plot_features[teacher_class,1],'.r', label = 'Teacher')
-	plt.plot(plot_features[student_class,0],
-		plot_features[student_class,1], '.k', label = 'Student')
+	ax2 = plt.subplot(122)
+	ax2.scatter(plot_features[teacher_class,0],
+		plot_features[teacher_class,1],'.r', s=pointsize)
+	ax2.scatter(plot_features[student_class,0],
+		plot_features[student_class,1], '.k', s = pointsize)
 	plt.xlabel('Audio Feature A', fontsize = fontsize)
 	plt.ylabel('Audio Feature B', fontsize = fontsize)
 	plt.title('Unsupervised Clusters', fontsize = titlesize)
@@ -336,60 +338,60 @@ def smooth_cluster_predictions(cluster_labels, smooth_window = 5):
 
 
 # #grab the video title (temporarily stored in HDF5)
-# HDF5_file = '/media/graham/OS/Linux Content/Youtube/teacher_audio_data.h5'
-# d = dd.io.load(HDF5_file)
-# video_num = 1
-# video_keys = d.keys()
-# print('Running on youtube video %s' % video_keys[video_num])
+HDF5_file = '/media/graham/OS/Linux Content/Youtube/teacher_audio_data.h5'
+d = dd.io.load(HDF5_file)
+video_num = 1
+video_keys = d.keys()
+print('Running on youtube video %s' % video_keys[video_num])
 
 # #grab the labelled data for this file
-# t_start, t_stop, t_type = get_labels()
+t_start, t_stop, t_type = get_labels()
 
 #analyse the audio file
-Fs, x = load_waveform('dqPjgQwoXLQ')
+Fs, x = load_waveform(video_keys[video_num])
 x = get_mono(x)
 t = get_time_vec(Fs,x)
 start = 1
 stop = int(t[-1])
-print(stop)
+# print(stop)
 
-Fs_us, x_us, time_us = undersample(Fs, x,N=1000)
+# Fs_us, x_us, time_us = undersample(Fs, x,N=1000)
 
-video_length = stop
+# video_length = stop
 
-#plot the waveform in a tractable way
-plot_start = start
-plot_stop = stop
-plot_times = (time_us >= plot_start) & (time_us <= plot_stop)
+# #plot the waveform in a tractable way
+# plot_start = start
+# plot_stop = stop
+# plot_times = (time_us >= plot_start) & (time_us <= plot_stop)
 
-x_filtered = low_pass_filter(Fs_us, x_us, tau = 1, order=3)
+# x_filtered = low_pass_filter(Fs_us, x_us, tau = 1, order=3)
 
-plt.figure(figsize = (12,6), dpi = 60)
-plt.subplot(111)
-plt.fill_between(time_us[plot_times],-x_filtered[plot_times]/10000,x_filtered[plot_times]/10000)
-plt.xlabel('time (s)')
-plt.ylabel('Amplitude')
+# plt.figure(figsize = (12,6), dpi = 60)
+# plt.subplot(111)
+# plt.fill_between(time_us[plot_times],-x_filtered[plot_times]/10000,x_filtered[plot_times]/10000)
+# plt.xlabel('time (s)')
+# plt.ylabel('Amplitude')
 
-plt.show()
+# plt.show()
 
 
 
 #Analyse the file
-# window_size = 1.0
-# step_size = 0.5
-# Features, FeatureTime = get_features(Fs,x,start, stop, window = window_size, step = step_size)
+window_size = 1.0
+step_size = 0.5
+Features, FeatureTime = get_features(Fs,x,start, stop, window = window_size, step = step_size)
 
-# #Features = low_pass_filter(5, Features, tau = 2, order = 3)
+#Features = low_pass_filter(5, Features, tau = 2, order = 3)
 
-# T_times, S_times = create_label_vecs(FeatureTime, t_start, t_stop, t_type)
+T_times, S_times = create_label_vecs(FeatureTime, t_start, t_stop, t_type)
 
-# cluster_labels, fit_features = cluster_audio(Features, FeatureTime, n_pca_components = 4)
+cluster_labels, fit_features = cluster_audio(Features, FeatureTime, n_pca_components = 4)
 
-# #cluster_labels = smooth_cluster_predictions(cluster_labels, 9)
+#cluster_labels = smooth_cluster_predictions(cluster_labels, 9)
 
-# analyse_cluster_performance(cluster_labels, T_times)
+analyse_cluster_performance(cluster_labels, T_times)
 
 # #Plot classification over time
 # visualize_classification_vs_time(FeatureTime, cluster_labels, T_times, S_times)
 #Plot classification in feature space
-#visualize_classification_clusters(cluster_labels, fit_features, T_times, S_times)
+# visualize_classification_clusters(cluster_labels, fit_features, T_times, S_times)

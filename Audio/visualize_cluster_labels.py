@@ -9,6 +9,10 @@ import os
 from SQL.load_rows import load_audio_data
 from SQL import settings
 
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import normalize
+from sklearn import cluster
+
 from SQL.addrows import add_cluster_labels, create_cluster_row, add_one_cluster_label
 from SQL.load_rows import load_cluster_labels, load_a_cluster_label
 
@@ -188,5 +192,16 @@ cluster_df = load_cluster_labels(yt_id)
 
 times = cluster_df['time'].as_matrix()
 cluster_labels = cluster_df['cluster_label_raw'].as_matrix()
+# 
+# visualize_classification_vs_time(times, cluster_labels)	
 
-visualize_classification_vs_time(times, cluster_labels)	
+audio_df = load_audio_data(yt_id)
+Feature_Time = audio_df['time'].as_matrix()
+Features = audio_df.ix[:,2:36].as_matrix().transpose()
+
+
+t_start, t_stop, t_type = get_labels()
+
+T_times, S_times = create_label_vecs(times, t_start, t_stop, t_type)
+
+visualize_classification_clusters(cluster_labels, Features, T_times, S_times)

@@ -1,3 +1,9 @@
+'''
+Base classes for two PostgreSQL databases, which respectively
+store the second-by-second audio features and the summary statistics
+of the processed youtube files
+'''
+
 import settings
 import datetime
 from sqlalchemy import create_engine
@@ -78,7 +84,5 @@ class VideoSummary(Base):
     long_question_start_b = Column(Integer)
     long_question_stop_a = Column(Integer)
     long_question_stop_b = Column(Integer)
-
-
-    #all of the generated metrics can go here too
+    cluster_confidence 	= Column(Float)
       

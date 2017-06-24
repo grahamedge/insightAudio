@@ -14,7 +14,7 @@ from SQL.load_rows import load_audio_data
 from SQL import settings
 
 from SQL.addrows import add_results, create_results_row
-from SQL.load_rows import load_cluster_labels, load_a_cluster_label, load_intensity
+from SQL.load_rows import load_cluster_labels, load_audio_data, load_intensity
 
 
 def get_labels():
@@ -84,7 +84,6 @@ def get_plottable_waveform(yt_id):
 
 	waveform = signal_intensity_df.as_matrix()
 
-	print(len(waveform))
 	plt.plot(waveform)
 	plt.show()
 
@@ -369,6 +368,66 @@ def match_time_labels(dest_times, cluster_times, cluster_labels):
 
 	return dest_labels
 
+def plot_clustered_waveform_without_wav(yt_id = 'y2OFsG6qkBs'):
+
+	#load audio features from DB
+	audio_df = load_audio_data(yt_id)
+	Feature_Time = audio_df['time'].as_matrix()
+	Features = audio_df.ix[:,2:36].as_matrix().transpose()
+	start = 1
+	stop = int(Feature_Time[-1])
+
+	#load cluster data
+	cluster_df = load_cluster_labels(yt_id)
+	cluster_times = cluster_df['time'].as_matrix()
+	cluster_labels = cluster_df['cluster_label_raw'].as_matrix()
+
+	#find the waveform times that match cluster labels
+	teacher_labels = np.logical_not(cluster_labels.astype(bool))
+	student_labels = np.logical_not(teacher_labels)
+	teacher_times = cluster_times[teacher_labels]
+	student_times = cluster_times[student_labels]
+
+	# #pick the times from t that match the times from cluster_times where
+	# cluster_labels_us = match_time_labels(time_us, cluster_times, cluster_labels)
+	# teacher_labels_us = cluster_labels_us.astype(bool)
+	# student_labels_us = np.logical_not(teacher_labels_us)
+
+	#plot the waveform in a tractable way
+	plot_start = start
+	plot_stop = stop
+	plot_times = (Feature_Time >= plot_start) & (Feature_Time <= plot_stop)
+
+	#the last data points is treated poorly by filtering steps, so don't plot
+
+	minute_labels, minute_values = get_minute_labels(Feature_Time[plot_times])
+
+	# x_filtered = audio_func.low_pass_filter(1.0, Features[0,:], tau = 1, order=1)
+	x_filtered = Features[0,:]
+	x_max = x_filtered.max()
+	x_teacher = np.zeros(x_filtered.shape)
+	x_student = np.zeros(x_filtered.shape)
+	x_teacher[teacher_labels] = x_filtered[teacher_labels]
+	x_student[student_labels] = x_filtered[student_labels]
+
+	fig = plt.figure(figsize = (8,3))
+	ax = plt.subplot(111) 
+	plt.fill_between(Feature_Time[plot_times],-x_teacher[plot_times]/x_max,x_teacher[plot_times]/x_max, facecolor='red')
+	plt.fill_between(Feature_Time[plot_times],-x_student[plot_times]/x_max,x_student[plot_times]/x_max, facecolor='black')
+	plt.ylim([-1,1])
+	plt.xlabel('time (s)', fontsize = 14)
+	plt.ylabel('Amplitude', fontsize = 14)
+	ax.set_xticks(minute_values)
+	ax.set_yticks([0])
+	l = ax.set_xticklabels(minute_labels, rotation = 45, fontsize = 14	)
+	l = ax.set_yticklabels([''], fontsize = 14)
+	# fig.patch.set_visible(False)
+	ax.axis('off')
+
+	plt.tight_layout()
+
+	return fig
+
 def plot_clustered_waveform(yt_id = 'y2OFsG6qkBs'):
 
 	Fs, x = audio_func.load_waveform(yt_id)
@@ -380,7 +439,9 @@ def plot_clustered_waveform(yt_id = 'y2OFsG6qkBs'):
 	start = 1
 	stop = int(t[-1])
 
-	Fs_us, x_us, time_us = audio_func.undersample(Fs, x,N=10000)
+	n_min = int(t[-1]/60)
+	N_undersample = 10000*n_min
+	Fs_us, x_us, time_us = audio_func.undersample(Fs, x, N=N_undersample)
 
 	#load cluster data
 	cluster_df = load_cluster_labels(yt_id)
@@ -400,6 +461,8 @@ def plot_clustered_waveform(yt_id = 'y2OFsG6qkBs'):
 	plot_start = start
 	plot_stop = stop
 	plot_times = (time_us >= plot_start) & (time_us <= plot_stop)
+
+	#the last data points is treated poorly by filtering steps, so don't plot
 
 	minute_labels, minute_values = get_minute_labels(time_us[plot_times])
 
@@ -421,6 +484,9 @@ def plot_clustered_waveform(yt_id = 'y2OFsG6qkBs'):
 	ax.set_yticks([0])
 	l = ax.set_xticklabels(minute_labels, rotation = 45, fontsize = 14	)
 	l = ax.set_yticklabels([''], fontsize = 14)
+	# fig.patch.set_visible(False)
+	ax.axis('off')
+
 	plt.tight_layout()
 
 	return fig
@@ -458,22 +524,19 @@ def plot_waveform(yt_id = 'y2OFsG6qkBs'):
 	ax.set_yticks([0])
 	l = ax.set_xticklabels(minute_labels, rotation = 45, fontsize = 14	)
 	l = ax.set_yticklabels([''], fontsize = 14)
+	ax.axes.get_yaxis().set_visible(False)
 	plt.tight_layout()
 
 	return fig	
 
 def plot_clustered_waveform_html(yt_id = 'y2OFsG6qkBs'):
 
-	Fs, x = audio_func.load_waveform(yt_id)
-	try:
-		x = audio_func.get_mono(x)
-	except TypeError:
-		print('Audio not properly loaded, make sure that audio data is accessible!')
-	t = audio_func.get_time_vec(Fs,x)
+	#load audio features from DB
+	audio_df = load_audio_data(yt_id)
+	Feature_Time = audio_df['time'].as_matrix()
+	Features = audio_df.ix[:,2:36].as_matrix().transpose()
 	start = 1
-	stop = int(t[-1])
-
-	Fs_us, x_us, time_us = audio_func.undersample(Fs, x,N=10000)
+	stop = int(Feature_Time[-1])
 
 	#load cluster data
 	cluster_df = load_cluster_labels(yt_id)
@@ -481,38 +544,47 @@ def plot_clustered_waveform_html(yt_id = 'y2OFsG6qkBs'):
 	cluster_labels = cluster_df['cluster_label_raw'].as_matrix()
 
 	#find the waveform times that match cluster labels
-	teacher_times = cluster_times[np.logical_not(cluster_labels.astype(bool))]
-	student_times = cluster_times[cluster_labels]
+	teacher_labels = np.logical_not(cluster_labels.astype(bool))
+	student_labels = np.logical_not(teacher_labels)
+	teacher_times = cluster_times[teacher_labels]
+	student_times = cluster_times[student_labels]
 
-	#pick the times from t that match the times from cluster_times where
-	cluster_labels_us = match_time_labels(time_us, cluster_times, cluster_labels)
-	teacher_labels_us = cluster_labels_us.astype(bool)
-	student_labels_us = np.logical_not(teacher_labels_us)
+	# #pick the times from t that match the times from cluster_times where
+	# cluster_labels_us = match_time_labels(time_us, cluster_times, cluster_labels)
+	# teacher_labels_us = cluster_labels_us.astype(bool)
+	# student_labels_us = np.logical_not(teacher_labels_us)
 
 	#plot the waveform in a tractable way
 	plot_start = start
 	plot_stop = stop
-	plot_times = (time_us >= plot_start) & (time_us <= plot_stop)
+	plot_times = (Feature_Time >= plot_start) & (Feature_Time <= plot_stop)
 
-	minute_labels, minute_values = get_minute_labels(time_us[plot_times])
+	#the last data points is treated poorly by filtering steps, so don't plot
 
-	x_filtered = audio_func.low_pass_filter(Fs_us, x_us, tau = 1, order=3)
+	minute_labels, minute_values = get_minute_labels(Feature_Time[plot_times])
+
+	# x_filtered = audio_func.low_pass_filter(1.0, Features[0,:], tau = 1, order=1)
+	x_filtered = Features[0,:]
 	x_max = x_filtered.max()
 	x_teacher = np.zeros(x_filtered.shape)
 	x_student = np.zeros(x_filtered.shape)
-	x_teacher[teacher_labels_us] = x_filtered[teacher_labels_us]
-	x_student[student_labels_us] = x_filtered[student_labels_us]
+	x_teacher[teacher_labels] = x_filtered[teacher_labels]
+	x_student[student_labels] = x_filtered[student_labels]
 
-	fig = plt.figure(figsize = (8,2))
+	fig = plt.figure(figsize = (8,3))
 	ax = plt.subplot(111) 
-	plt.fill_between(time_us[plot_times],-x_teacher[plot_times]/x_max,x_teacher[plot_times]/x_max, facecolor='red')
-	plt.fill_between(time_us[plot_times],-x_student[plot_times]/x_max,x_student[plot_times]/x_max, facecolor='black')
-	plt.xlabel('time (s)', fontsize = 14)
-	plt.ylabel('Amplitude', fontsize = 14)
+	plt.fill_between(Feature_Time[plot_times],-x_teacher[plot_times]/x_max,x_teacher[plot_times]/x_max, facecolor='red')
+	plt.fill_between(Feature_Time[plot_times],-x_student[plot_times]/x_max,x_student[plot_times]/x_max, facecolor='black')
+	plt.ylim([-1,1])
+	plt.xlabel('', fontsize = 14)
+	plt.ylabel('', fontsize = 14)
 	ax.set_xticks(minute_values)
 	ax.set_yticks([0])
 	l = ax.set_xticklabels(minute_labels, rotation = 45, fontsize = 14	)
 	l = ax.set_yticklabels([''], fontsize = 14)
+	# fig.patch.set_visible(False)
+	ax.axis('off')
+
 	plt.tight_layout()
 
 	fig_html = mpld3.fig_to_html(fig)
@@ -562,5 +634,15 @@ def plot_speaker_vs_time_test(yt_id):
 
 
 if __name__ == '__main__':
-	fig = plot_clustered_waveform('dqPjgQwoXLQ')
+
+	# yt_id = 'y2OFsG6qkBs'
+
+	# summarize_video(yt_id)
+
+	# html = plot_clustered_waveform_html('dqPjgQwoXLQ')
+	# # print(html)
+
+	# visualize_classification_clusters(clusters, features, teacher_times, student_times)
+
+	fig = plot_clustered_waveform_without_wav('dqPjgQwoXLQ')
 	plt.show()

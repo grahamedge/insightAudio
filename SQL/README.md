@@ -1,62 +1,32 @@
-# Make db table and adding rows
+# Details:
 
-- Install sqlalchemy: `pip install sqlalchemy`.
-- Figure out what you want your columns to be in your database table. 
-  You have to alter the file `models.py` so the attributes in the class
-  match the columns you want in your data base. In this example the
-  class that models your data is called `EmploymentInfo`. If you
-  change the name `EmploymentInfo` in `models.py` then also change the
-  references to it in `make_db_table.py` and `addrows.py`.
-- Create your database. In this example it's called "fed_employment".
-  With postgres you can go into your terminal, type `psql` and then
-  enter `CREATE DATABASE fed_employment;` (don't forget the semicolon,
-  like I do so often). The database must be created before you run
-  `make_db_table.py`
-- Change database connection info in `settings.py`. If you connect to
-  postgres on your computer then the host is probably "localhost" and
-  the port is probably "5432".
-- Run `python make_db_table.py` in the terminal. If there were no
-    problems then you should see a bunch of jargon about sql and the
-    last line should say something about an sqlalchemy engine commit.
-- Modify the `addrows.py` file to add rows to the database.
+These functions are used to create and interact with two tables in a 
+PostgreSQL database. The two tables are 'audio_features' and 'video_summary'.
 
-# Interacting with the db
+'audio_features' is meant to store second-by-second audio information for each
+Youtube file that is processed. Since two different Youtube videos may (and likely will)
+have overlap in terms of the possible times considered, this database uses two primary keys: 
+'youtube_id' (string) and 'time' (float) in order to uniquely specify a sample of audio.
 
-## Getting data from sql table in the form of python objects
+'video_summary' is meant to store summary information about each youtube video such as
+the length of the video, or the number of times that the speaker switches during the video.
+Since there is no second-by-second information stored here, only a single primary key is needed: 'youtube_id'.
+
+#PostgreSQL Details:
+
+Actual PostgreSQL details are withheld here. To run these functions a file 'settingsAWS.py' should be created in the SQL directory with the contents:
 
 ```python
-from models import dbsession
-third_employee = dbsession.query(EmployeeInfo).filter(employee_id == 3).first()
-print(third_employee.employee_name)
->>> Bob
-all_employees = dbsession.query(EmployeeInfo).all()
-for employee in all_employees:
-    print(employee.id)
->>> 1
->>> 2
-.  
-.  
-.
+DATABASE = {
+        'NAME': "database_name",
+        'USER': "user_name",
+        "PASSWORD": "password_goes_here",
+        "HOST": "database_server_address",
+        "PORT": "database_port",
+    }
+
+DATABASE_URI = 'postgres://%s:%s@%s:%s/%s' % (DATABASE['USER'],
+        DATABASE['PASSWORD'],DATABASE['HOST'],DATABASE['PORT'],DATABASE['NAME'])
 ```
 
-[More sqlalchemy examples](http://docs.sqlalchemy.org/en/latest/orm/tutorial.html)
-
-
-## Using raw sql queries
-```python
-from models import engine
-res = engine.execute('SELECT * FROM employee_info;').fetchall()
-```
-
-Here `res` is only a list of rows which are themselves lists. You can't
-say something like `res.employee_id` because `res` is not an python object.
-
-## Read sql table into Pandas
-
-This is useful if you want to manipulate the data fast with Pandas.
-
-```python
-from models import engine
-df = pd.read_sql_query('SELECT * FROM "employee_info"', con=engine)
-```
-
+For debugging purposes, two such settings files where used during this project. One pointing to a PostgreSQL database hosted locally on my laptop (settings.py) and one pointing to an Amazon Web Services RDS server (settingsAWS).

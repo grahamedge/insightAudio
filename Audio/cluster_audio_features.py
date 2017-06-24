@@ -13,7 +13,7 @@ import os
 from scipy.spatial.distance import euclidean
 
 from SQL.load_rows import load_audio_data
-from SQL import settings
+from SQL import settingsAWS
 
 from Audio import summarize_cluster_labels as scl
 from Audio import audio_functions as audiofunc
@@ -483,10 +483,12 @@ if __name__ == '__main__':
 	# 			 ]	
 
 	video_list = [
-				'Cj1TJTl-XE0'
+				'dqPjgQwoXLQ'
 			]			 
 
 	for video_id in video_list:
 
 		print('Processing video %s...' % video_id)
-		T, C, = calc_cluster_labels_with_rejection(video_id)
+		process_audio(video_id)
+
+		# T, C, = calc_cluster_labels_with_rejection(video_id)

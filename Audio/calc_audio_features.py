@@ -353,18 +353,20 @@ def create_features(yt_id = 'y2OFsG6qkBs'):
 
 
 if __name__ == '__main__':
-	video_list = ['IHo_Fvx1V5I',
+	video_list = [
+				#'IHo_Fvx1V5I',
 				 'y2OFsG6qkBs',
-				 'kW_rOyL7xuc',
-				 'AeioFIXDvhM',
-				 'G1dx947MAmk',
-				 'LIIU7ZuzBi4',
-				 '17wnvSd_Ndo',
-				 'l6L2tUbQ4iM',
-				 'oEQyAuz_hzs',
-				 'lwdfoZ1Z3s8',
-				 'fM3PqRcQ27o',
-				 'GD7GNO08Epg']
+				# 'kW_rOyL7xuc',
+				# 'AeioFIXDvhM',
+				# 'G1dx947MAmk',
+				# 'LIIU7ZuzBi4',
+				# '17wnvSd_Ndo',
+				# 'l6L2tUbQ4iM',
+				# 'oEQyAuz_hzs',
+				# 'lwdfoZ1Z3s8',
+				# 'fM3PqRcQ27o',
+				# 'GD7GNO08Epg'
+				]
 
 	for video_id in video_list:
 		print('Processing video %s...' % video_id)

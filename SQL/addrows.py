@@ -1,32 +1,36 @@
-from datetime import datetime
-from models import AudioInfo, VideoSummary
+'''
+Basic functionality for adding different types of data to PostgreSQL database
+'''
 
+#Built in libraries
+from datetime import datetime
+
+#Third party libraries
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 import psycopg2
 import pandas as pd
-import settings
 
-import timeit
+#PostgreSQL settings
+import settings 	#for locally hosted database
+import settingsAWS	#for Amazon RDS
 
-# engine = create_engine(settings.DATABASE_URI, echo=False)
-# Session = sessionmaker(bind=engine)
-# dbsession = Session()
+#Homebuilt
+from models import AudioInfo, VideoSummary
 
-user = 'graham'
-host = 'localhost'
-dbname = 'teaching_videos'
-#db = create_engine('postgres://%s%s%s' % (user, host, dbname))
 
-engine = create_engine(settings.DATABASE_URI, echo=False)
+#This should really go in an __init__ file elsewhere!
+engine = create_engine(settingsAWS.DATABASE_URI, echo=False)
 Session = sessionmaker(bind=engine)
-dbsession = Session()
 
-con = None
-con = psycopg2.connect(database = dbname, user = user)
-cur = con.cursor()
 
+#Functions
+#---------
 def create_audio_row(yt_id, time, features):
+	'''it is occasionally convenient to add only the features of a processed
+	audio file to the database, without performing any cluster analysis,
+	so this function produces rows with only audio features'''
 	row = AudioInfo(
         youtube_id = yt_id,
         time = time,
@@ -67,6 +71,8 @@ def create_audio_row(yt_id, time, features):
 	return row
 
 def create_complete_row(yt_id, time, features, cluster_label):
+	'''Creates full rows with all audio features and 
+	cluster labels to be added to the database'''
 	row = AudioInfo(
         youtube_id = yt_id,
         time = time,
@@ -108,6 +114,8 @@ def create_complete_row(yt_id, time, features, cluster_label):
 	return row	
 
 def create_results_row(yt_id, results_dict):
+	'''Creates rows for the second database storing only the sumary statistics
+	for each audio file'''
 	row = VideoSummary(
         youtube_id = yt_id,
         teacher_talk_ratio = results_dict['teacher_talk_ratio'],
@@ -149,25 +157,47 @@ def create_cluster_row(yt_id, time, cluster_label, label_type = 'raw'):
 	return row
 
 def add_audio_row(yt_id, time, features):
+	'''Add a single row (single timestep) of audio information to the data base'''
+	
+	dbsession = Session()
+
 	row = create_audio_row(yt_id, time, features)
 	dbsession.add(row)
 	dbsession.commit()	
 
+	dbsession.close()
+
 def add_audio_features(yt_id, times, feature_matrix):
+	'''Given a list of times and the associated features for the full audio file,
+	this function adds them all to the database using repeated SQL operations'''
+
+	dbsession = Session()
 
 	for idx, time in enumerate(times):
 		row = create_audio_row(yt_id, time, feature_matrix[:,idx])
 		# add_audio_row(yt_id, time, audio_features[:,idx])
 		dbsession.add(row)
-	dbsession.commit()		
+	dbsession.commit()	
 
-def add_cluster_labels(yt_id, times, feature_matrix, cluster_labels):
+	dbsession.close()	
+
+def add_cluster_labels(dbsession, yt_id, times, feature_matrix, cluster_labels):
+	'''Audio features may have been added to the database already without
+	any labels from the discovered clusters. This function removes any such partial data
+	and then saves the full information for time, features, and cluster_label into 
+	the database.
+
+	Deleting the existing info and re-adding is faster than adding the ~3000 rows
+	one-by-one and having to match the time column each time. By adding full rows
+	we avoid the matching step.'''
+
+	dbsession = Session()
 
 	#Remove all the audio data for the specified youtube file
-	sql_query = "DELETE FROM audio_features WHERE youtube_id = %(yt_id)s"
-	data = {'yt_id':yt_id}
-	cur.execute(sql_query, data)
-	con.commit()
+	sql_query = text("DELETE FROM audio_features WHERE youtube_id = :yt_id")
+
+	with engine.connect() as con:
+	    con.execute(sql_query, yt_id = yt_id)
 
 	#Then insert it again with all columns already matched in order
 	for idx, time in enumerate(times):
@@ -175,14 +205,16 @@ def add_cluster_labels(yt_id, times, feature_matrix, cluster_labels):
 		dbsession.add(row)
 	dbsession.commit()
 
+	dbsession.close()
+
 def add_results(yt_id, results_dict):
+	'''Adds the summary statistics stored in "results_dict" to the
+	results database'''
+
+	dbsession = Session()
 
 	row = create_results_row(yt_id, results_dict)
 	dbsession.add(row)
 	dbsession.commit()
 
-def add_one_cluster_label(yt_id, time, label):
-	sql_query = "UPDATE audio_features SET cluster_label_raw = %(label)s WHERE youtube_id = %(yt_id)s AND ABS(audio_features.time-%(t)s) < 0.1;"
-	data = {'yt_id':yt_id, 'label': int(label), 't': time}
-	cur.execute(sql_query, data)
-	con.commit()
+	dbsession.close()

@@ -51,9 +51,8 @@ youtube_audio_folder 	= '/media/graham/OS/Linux Content/Youtube/Audio/'
 
 easy_youtube_list = [
 			#'Cj1TJTl-XE0',
-			'5MJR74vZgX0t',
-			'5qsVB5ZmrD4',
-			'33-IPvOHc6M'
+			#'dqPjgQwoXLQ',
+			'y2OFsG6qkBs'
 			]
 
 

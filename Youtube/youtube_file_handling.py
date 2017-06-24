@@ -55,6 +55,53 @@ def download_video(yt_id, save_folder = '/media/graham/OS/Linux Content/Youtube/
 
 	return success, video_title
 
+def download_audio(yt_id, save_folder = '/media/graham/OS/Linux Content/Youtube/Videos/'):
+	'''Fetches the video file from https://www.youtube.com/watch?v=xxxxxxxxx
+	where xxxxxxxxx is replaced by the input 'yt_id' 
+
+	Downloaded file is saved as .mkv
+
+	If Automatic captions are available, they are saved in the same location
+
+	NOTES:
+	- Some videos have automatic CC disabled (if the uploader doesn't appprove)
+		and these should be detected so that they can be ignored
+	- Sometimes the video download will fail, and we should detect the error and retry
+	- This should really just short-cut directly to audio download, since we currently
+		don't use the video
+	'''
+
+	#Download video file
+	#-------------------
+	save_format = save_folder+'%(id)s.%(ext)s'
+	ydl_opts = {
+	    'outtmpl': save_format,
+	    'merge_output_format': 'mkv',
+	    'writeautomaticsub': True
+	    }
+	ydl = youtube_dl.YoutubeDL(ydl_opts)
+
+	with ydl:
+	    link = 'https://www.youtube.com/watch?v='+yt_id
+	    result = ydl.extract_info(
+	        link,
+	        download=True # We want the video
+	    )
+
+	if 'entries' in result:
+	    # Can be a playlist or a list of videos
+	    video = result['entries'][0]
+	else:
+	    # Just a video
+	    video = result
+
+	video_title = video['title']
+
+	success = True #should detect download success
+
+	return success, video_title
+
+
 def download_video_metadata(yt_id):
 	'''Just grab the metadata for the video, don't download the file'''
 
