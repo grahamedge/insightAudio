@@ -1,24 +1,29 @@
+'''
+Functions to take a labelled waveform and produce summary statistics
+such as the number of questions, the ratio of time each speaker talks,
+voice variation of each speaker, etc...
+'''
+
+#Basic packages
+import timeit
+import os
+
 #Third party packages
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
 import pandas as pd
-import timeit
-import os
-
 import mpld3
 
+#Homebuilt
 import calc_audio_features as audio_func
-
-from SQL.load_rows import load_audio_data
-from SQL import settings
-
 from SQL.addrows import add_results, create_results_row
 from SQL.load_rows import load_cluster_labels, load_audio_data, load_intensity
 
 
 def get_labels():
-	#import the labelled start and stop times
+	'''Import some labelled data from a local file'''
+
 	labels = pd.read_csv('/home/graham/Insight2017/YoutubeVids/IrelandTranscript.csv')
 	t_start = labels['start'].tolist()
 	t_stop = labels['stop'].tolist()
@@ -27,6 +32,11 @@ def get_labels():
 	return t_start, t_stop, t_type
 
 def create_label_vecs(timevec, t_start, t_stop, t_type):
+	'''with lists of times in which a given speaker starts and stops speaking
+	this function produces numpy vectors T_times and S_time that label each 
+	timestep in the time vector "timevec" with boolean values corresponding
+	to whether the specific speaker is talking at that timestep'''
+
     T_times = np.zeros(timevec.shape).astype(int)
     S_times = np.zeros(timevec.shape).astype(int)
 
@@ -62,140 +72,6 @@ def get_minute_labels(timevec):
 	mmss_labels = [('%d:%02d' % (m,s)) for m,s in zip(m_labels, s_labels)]
 	return mmss_labels, s_values
 
-def visualize_classification_vs_time_with_truth(times, clusters, teacher_times, student_times):
-
-	start = 0
-	stop = times[-1]
-	plot_times = (times >= start) & (times <= stop)
-
-	minute_labels, minute_values = get_minute_labels(times)
-
-	fig = plt.figure(figsize = (20,6), dpi = 60)
-	ax = plt.subplot(111) 
-	ax.plot(times[plot_times], student_times[plot_times], '--k')
-	ax.set_xticks(minute_values)
-	l = ax.set_xticklabels(minute_labels, rotation = 45)
-
-	return fig
-
-def get_plottable_waveform(yt_id):
-
-	signal_intensity_df = load_intensity(yt_id)
-
-	waveform = signal_intensity_df.as_matrix()
-
-	plt.plot(waveform)
-	plt.show()
-
-	return waveform	
-
-def visualize_classification_vs_time(yt_id, times, clusters):
-
-	start = 0
-	stop = times[-1]
-	plot_times = (times >= start) & (times <= stop)
-
-	minute_labels, minute_values = get_minute_labels(times)
-
-	waveform = get_plottable_waveform()
-
-	fig = plt.figure(figsize = (20,6), dpi = 60)
-	ax = plt.subplot(111) 
-	ax.fill_between(times[plot_times],0, clusters[plot_times])
-	ax.set_xticks(minute_values)
-	ax.set_yticks([0,1])
-	l = ax.set_xticklabels(minute_labels, rotation = 45, fontsize = 18	)
-	l = ax.set_yticklabels(['A','B'], fontsize = 18)
-
-	return fig
-
-def visualize_classification_vs_time_html(times, clusters):
-
-	start = 0
-	stop = times[-1]
-	plot_times = (times >= start) & (times <= stop)
-
-	minute_labels, minute_values = get_minute_labels(times)
-
-	fig = plt.figure(figsize = (8,2))
-	ax = plt.subplot(111) 
-	ax.fill_between(times[plot_times],0, clusters[plot_times])
-	ax.set_xticks(minute_values)
-	ax.set_yticks([0])
-	l = ax.set_xticklabels(minute_labels, rotation = 90, fontsize = 14	)
-	l = ax.set_yticklabels([''], fontsize = 18)
-
-	# plt.fill_between(times[plot_times],0, clusters[plot_times])
-
-	fig_html = mpld3.fig_to_html(fig)
-
-	return fig_html	
-
-def visualize_classification_clusters(clusters, features, teacher_times, student_times):
-
-	#2D projection of feature space
-	pca = PCA(n_components = 2)
-	plot_features = pca.fit_transform(normalize(features, axis=0))
-
-	student_class = clusters.astype(bool)
-	teacher_class = np.logical_not(clusters)
-
-	fontsize = 20
-	titlesize = fontsize+4
-
-	plt.figure(figsize = (16,8))
-	plt.subplot(121)
-	plt.plot(plot_features[teacher_times,0],
-		plot_features[teacher_times,1],'.r')
-	plt.plot(plot_features[student_times,0],
-		plot_features[student_times,1], '.k')
-	plt.xlabel('Audio Feature A', fontsize = fontsize)
-	plt.ylabel('Audio Feature B', fontsize = fontsize)
-	plt.title('Labelled Data', fontsize = titlesize)
-
-	plt.subplot(122)
-	plt.plot(plot_features[teacher_class,0],
-		plot_features[teacher_class,1],'.r', label = 'Teacher')
-	plt.plot(plot_features[student_class,0],
-		plot_features[student_class,1], '.k', label = 'Student')
-	plt.xlabel('Audio Feature A', fontsize = fontsize)
-	plt.ylabel('Audio Feature B', fontsize = fontsize)
-	plt.title('Unsupervised Clusters', fontsize = titlesize)
-
-	plt.tight_layout()
-	plt.show()
-
-def add_time_feature(times, features):
-	f = np.vstack((features.transpose(),times)).transpose()
-
-	return f
-
-def add_nearby_time_features(features, n_time_steps = 9 ):
-	'''to smooth out some of the fast noise in the classes,
-	add new features to each time bin which are scaled versions of
-	nearby time bins... this is possibly similar to classifying
-	each time point individually and later applying median filter
-
-	n_time_steps is the total number points to include BOTH forward
-	and backward in time, and should be an odd number'''
-
-	n_times = features.shape[0]
-	n_features = features.shape[1]
-	expanded_features = np.zeros((n_times, 
-				(n_time_steps)*n_features))
-
-	n_steps = np.floor(n_time_steps/2)
-	step_list = np.linspace(-n_steps, n_steps, n_time_steps).astype(int)
-
-	sigma = 5	
-	weight_list = np.exp(-1.0 * step_list*step_list / sigma**2)
-
-	for i, step, weight in zip(range(n_time_steps), step_list, weight_list):
-		shifted_features = np.roll(features, step, axis = 0)
-
-		expanded_features[:,i*n_features:(i+1)*n_features] = weight*shifted_features
-
-	return expanded_features
 
 def get_jumps(A):
 

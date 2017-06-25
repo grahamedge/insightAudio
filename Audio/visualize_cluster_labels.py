@@ -1,24 +1,29 @@
+'''
+Functions to plot and otherwise visualize the performance
+of the clustering algorithm
+'''
+
+#Basic libraries
+import timeit
+import os
+
 #Third party packages
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
 import pandas as pd
-import timeit
-import os
-
-from SQL.load_rows import load_audio_data
-from SQL import settings
-
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 from sklearn import cluster
 
+#Homebuilt
+from SQL import settings
 from SQL.addrows import add_cluster_labels, create_cluster_row, add_one_cluster_label
-from SQL.load_rows import load_cluster_labels, load_a_cluster_label
+from SQL.load_rows import load_cluster_labels, load_a_cluster_label, load_audio_data
 
 
 def get_labels():
-	#import the labelled start and stop times
+	'''Import some labelled data from a local file'''
 	labels = pd.read_csv('/home/graham/Insight2017/YoutubeVids/IrelandTranscript.csv')
 	t_start = labels['start'].tolist()
 	t_stop = labels['stop'].tolist()
@@ -27,6 +32,12 @@ def get_labels():
 	return t_start, t_stop, t_type
 
 def create_label_vecs(timevec, t_start, t_stop, t_type):
+	'''with lists of times in which a given speaker starts and stops speaking
+	this function produces numpy vectors T_times and S_time that label each 
+	timestep in the time vector "timevec" with boolean values corresponding
+	to whether the specific speaker is talking at that timestep'''
+
+
     T_times = np.zeros(timevec.shape).astype(int)
     S_times = np.zeros(timevec.shape).astype(int)
 
@@ -40,35 +51,11 @@ def create_label_vecs(timevec, t_start, t_stop, t_type):
     T_times = T_times.astype(bool)
     S_times = S_times.astype(bool)
     return T_times, S_times	
-
-
-def analyse_cluster_performance(cluster_labels, T_times):
-	accuracy = 100*np.mean(np.logical_not(cluster_labels) == T_times)
-	accuracy_b = 100*np.mean(cluster_labels == T_times)
-	TTR = 1 - float(np.sum(cluster_labels)) / len(cluster_labels)
-	
-	if accuracy < accuracy_b:
-		accuracy = accuracy_b
-		TTR = 1-TTR
-
-	base_accuracy = 100*np.mean(np.ones(T_times.shape).astype(bool) == T_times)
-
-	truth_TTR = float(np.sum(T_times)) / len(T_times)
-
-	cluster_starts, cluster_stops = get_jumps(cluster_labels)
-	n_interactions = np.sum(cluster_starts)
-
-	truth_n_interactions = np.asarray([typ == 'S' for typ in t_type]).sum()
-
-	print('The classification accuracy is %d' % accuracy)
-	print('The trivial accuracy is %d' % base_accuracy)
-	print('Calculated TTR is %0.2f' % TTR)
-	print('Actual TTR is %0.2f' % truth_TTR)
-	print('Detected %d student-teacher interactions' % n_interactions)
-	print('Expected %d student-teacher interactions' % truth_n_interactions)    
+  
 
 def get_minute_labels(timevec):
-    '''for a given time vector, return a list of markers and labels'''
+    '''for a given time vector, return a list of markers and labels
+	in mm:ss format (try to return at least 4 labels that span the full length)'''
     m_max = np.ceil(timevec[-1]/60)
     m_min = np.floor(timevec[0]/60)
     m_step = round((m_max-m_min)/12)
@@ -79,6 +66,7 @@ def get_minute_labels(timevec):
     return m_labels, s_values
 
 def visualize_classification_vs_time_with_truth(times, clusters, teacher_times, student_times):
+	'''plot the cluster labels over time, alongside the true values over time'''
 
 	start = 0
 	stop = times[-1]
@@ -95,6 +83,8 @@ def visualize_classification_vs_time_with_truth(times, clusters, teacher_times, 
 	plt.show()
 
 def visualize_classification_vs_time(times, clusters):
+	'''with a list of predicted classifications, this function plots a cartoon of the
+	audio waveform and color-codes it with the cluster predictions for easy interpretation'''
 
 	start = 0
 	stop = times[-1]
@@ -110,7 +100,46 @@ def visualize_classification_vs_time(times, clusters):
 
 	plt.show()
 
+def visualize_classification_vs_time_html(times, clusters):
+	'''same functionality as visualize_classification_clusters
+	but uses the mpld3 function to produce javascript for a web interface'''
+
+	start = 0
+	stop = times[-1]
+	plot_times = (times >= start) & (times <= stop)
+
+	minute_labels, minute_values = get_minute_labels(times)
+
+	fig = plt.figure(figsize = (8,2))
+	ax = plt.subplot(111) 
+	ax.fill_between(times[plot_times],0, clusters[plot_times])
+	ax.set_xticks(minute_values)
+	ax.set_yticks([0])
+	l = ax.set_xticklabels(minute_labels, rotation = 90, fontsize = 14	)
+	l = ax.set_yticklabels([''], fontsize = 18)
+
+	# plt.fill_between(times[plot_times],0, clusters[plot_times])
+
+	fig_html = mpld3.fig_to_html(fig)
+
+	return fig_html	
+
 def visualize_classification_clusters(clusters, features, teacher_times, student_times):
+	'''takes a list of predicted cluster labels "clusters" as well as the true
+	speaker labels "teacher_times" and "student_times", and uses them to visualize
+	the performance of clustering in the audio feature space specified by the numpy
+	array "features"
+
+	since there are more audio features than can be shown in a 2D or 3D plot, options are:
+	- plot only a couple of the audio features
+	- use t-SNE on the known speaker labels to find the best low-dimensional	
+		representation for plotting
+	- pretend that we don't know the true labels and use PCA to reduce to a
+		low-dimensional representation for plotting that may or may not actually
+		be the best way to separate the clusters
+
+	currently, the third option (PCA into 2 features) is used'''
+
 
 	#2D projection of feature space
 	pca = PCA(n_components = 2)
@@ -144,37 +173,17 @@ def visualize_classification_clusters(clusters, features, teacher_times, student
 	plt.tight_layout()
 	plt.show()
 
-def add_time_feature(times, features):
-	f = np.vstack((features.transpose(),times)).transpose()
+def set_teacher_cluster(cluster_labels):
+	'''takes the cluster labels as integers (0 or 1, 
+	corresponding to teacher / not-teacher) and ensures
+	that: 0 = teacher
+		  1 = not-teacher	 
+	by assuming that teacher talks most!  '''
 
-	return f
+	if np.sum(cluster_labels) < 0.5:
+		cluster_labels = np.logical_not(cluster_labels.astype(bool)).astype(int)
 
-def add_nearby_time_features(features, n_time_steps = 9 ):
-	'''to smooth out some of the fast noise in the classes,
-	add new features to each time bin which are scaled versions of
-	nearby time bins... this is possibly similar to classifying
-	each time point individually and later applying median filter
-
-	n_time_steps is the total number points to include BOTH forward
-	and backward in time, and should be an odd number'''
-
-	n_times = features.shape[0]
-	n_features = features.shape[1]
-	expanded_features = np.zeros((n_times, 
-				(n_time_steps)*n_features))
-
-	n_steps = np.floor(n_time_steps/2)
-	step_list = np.linspace(-n_steps, n_steps, n_time_steps).astype(int)
-
-	sigma = 5	
-	weight_list = np.exp(-1.0 * step_list*step_list / sigma**2)
-
-	for i, step, weight in zip(range(n_time_steps), step_list, weight_list):
-		shifted_features = np.roll(features, step, axis = 0)
-
-		expanded_features[:,i*n_features:(i+1)*n_features] = weight*shifted_features
-
-	return expanded_features
+	return cluster_labels
 
 
 def smooth_cluster_predictions(cluster_labels, smooth_window = 5):

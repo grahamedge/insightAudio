@@ -1,5 +1,14 @@
+'''
+Function to perform unsupervised clustering analysis on the
+audio features of a waveform. Audio features are fetched from a SQL
+database, and cluster results can be saved to the same database
+'''
+
+#Basic libraries
+import timeit
+import os
+
 #Third party packages
-import deepdish as dd
 import numpy as np
 import matplotlib.pyplot as plt
 from pyAudioAnalysis import audioBasicIO as aIO
@@ -7,53 +16,18 @@ from pyAudioAnalysis import audioSegmentation as aS
 from pyAudioAnalysis import audioFeatureExtraction as aF
 from scipy import signal
 import pandas as pd
-import timeit
-import os
-
 from scipy.spatial.distance import euclidean
-
-from SQL.load_rows import load_audio_data
-from SQL import settingsAWS
-
-from Audio import summarize_cluster_labels as scl
-from Audio import audio_functions as audiofunc
-
-#Data analysis stuff
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 from sklearn import cluster
 
+#Homebuilt
+from SQL import settingsAWS
+from Audio import summarize_cluster_labels as scl
+from Audio import audio_functions as audiofunc
 from SQL.addrows import add_cluster_labels, create_cluster_row, add_one_cluster_label
-from SQL.load_rows import load_cluster_labels, load_a_cluster_label
+from SQL.load_rows import load_cluster_labels, load_a_cluster_label, load_audio_data
 
-
-def load_data_table(filename = '/media/graham/OS/Linux Content/Youtube/teacher_audio_data.h5'):
-    '''load HDF5 data'''
-    d = dd.io.load(HDF5_file)
-    return d
-
-def find_audio_file(yt_id, folder = '/media/graham/OS/Linux Content/Youtube/Audio/'):
-    '''produce the path to the .wav file'''
-    loc = file_loc = folder + yt_id + '.wav'
-    return loc
-    
-    
-def load_waveform(yt_id, folder = '/media/graham/OS/Linux Content/Youtube/Audio/'):
-    '''load the .wav file corresponding to a given Youtube ID'''
-    file_loc = folder + yt_id + '.wav'
-    [Fs, x] = aIO.readAudioFile(file_loc)
-    return Fs, x
-
-def get_mono(x):
-    '''average over the two audio channels to produce a mono signal'''
-    x_mono = x.mean(axis=1)
-    return x_mono
-
-def get_time_vec(Fs, x):
-    '''with a given sampling rate, produce a vector of times to use for plotting'''
-    T = len(x) / Fs
-    timevec = np.linspace(0, T, len(x))
-    return timevec
 
 def undersample(x,N):
     '''divide the audio waveform into bins of size N in order to reduce the data size'''
@@ -65,25 +39,6 @@ def undersample(x,N):
     Fs_sampl = Fs / N
     return Fs_sampl, x_sampl, time
 
-def get_features(Fs,x,start,stop, window = 1.0, step = 1.0):
-
-    #start_time = timeit.default_timer()
-    F = aF.stFeatureExtraction(x[start*Fs:stop*Fs], Fs, window*Fs, step*Fs);
-    #elapsed_time = timeit.default_timer() - start_time
-    #print('Basic feature extraction took %d seconds' % elapsed_time)
-
-    #Create a time vector appropriate for plotting the features F
-    time_F = np.linspace(start, stop, F.shape[1])
-
-    return F, time_F
-
-def expand_features(features, Fs, dt, num_frames):
-    '''repeat the values of the audio features in each time bin to help with smooth plotting
-    Fs is the sampling rate that is desired
-    dt is the total time for which features are captured
-    num_frames is the number of times each audio feature is sampled in the given time'''
-    F_plot = np.repeat(features,dt*Fs/num_frames, axis=1)
-    return F_plot
 
 def low_pass_filter(Fs, x, tau = 2, order=3):
     '''defines a butterworth filter with the specified order
@@ -116,7 +71,6 @@ def PCA_reduce(features, featuremask):
     
     return pca.transform(features[featuremask])
 
-#try PCA on these audio features
 def prep_features(features, feature_mask):
     '''select desired features and normalize them for PCA'''
     #also need to transpose because PCA works on axis=1
@@ -124,7 +78,7 @@ def prep_features(features, feature_mask):
     return features_masked
 
 def get_labels():
-	#import the labelled start and stop times
+	'''import some labelled data to check classification'''
 	labels = pd.read_csv('/home/graham/Insight2017/YoutubeVids/IrelandTranscript.csv')
 	t_start = labels['start'].tolist()
 	t_stop = labels['stop'].tolist()
@@ -133,6 +87,11 @@ def get_labels():
 	return t_start, t_stop, t_type
 
 def create_label_vecs(timevec, t_start, t_stop, t_type):
+	'''with lists of times in which a given speaker starts and stops speaking
+	this function produces numpy vectors T_times and S_time that label each 
+	timestep in the time vector "timevec" with boolean values corresponding
+	to whether the specific speaker is talking at that timestep'''
+
     T_times = np.zeros(timevec.shape).astype(int)
     S_times = np.zeros(timevec.shape).astype(int)
 
@@ -161,6 +120,13 @@ def apply_PCA(feature_matrix, n_components = 5):
 	return Features_reduced
 
 def get_jumps(A):
+	'''given a numpy array with boolean values, this function
+	find all of the elements of the array for which the value changes from
+	the previous array element (the 'jumps' in the array value)
+
+	e.g. this is used to find the precise seconds at which the speaker changes based on
+	a numpy vector which contains speaker classification for all of the seconds
+	in an audio file '''
 
 	#create shifted version of A
 	B = np.roll(A,-1)
@@ -170,6 +136,18 @@ def get_jumps(A):
 	return start, stop
 
 def cluster_audio(Features, FeatureTime, n_pca_components = 5, n_clusters = 2):
+	'''given a list of audio features, this function produces a smaller
+	set of features using Principal Component Analysis (PCA), and then uses 
+	hierarchical clustering to try to discover structure in the reduced
+	feature space
+
+	after reducing the number of features with PCA, this function also adds
+	time-shifted versions of features to each timestep in the file - an expansion
+	of the data that is intended to make nearby timesteps look more similar to reduce
+	the prevalence of 'digital flicker' noise in the classification
+
+	returns a list of cluster labels for each timestep, as well as the list
+	of features in the reduced feature space produced by PCA'''
 
 	desired_features = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 	feature_mask = [feature in desired_features for feature in range(Features.shape[0])]
@@ -177,9 +155,6 @@ def cluster_audio(Features, FeatureTime, n_pca_components = 5, n_clusters = 2):
 
 	#Apply PCA
 	Features_reduced = apply_PCA(Features_masked, n_components = n_pca_components)	
-	#Features_reduced = Features_masked
-	#Features_reduced = normalize(Features_masked, axis=0)
-	#Features_reduced = add_time_feature(FeatureTime, Features_reduced)
 
 	#Add nearby time features
 	Features_reduced = add_nearby_time_features(Features_reduced,
@@ -206,8 +181,6 @@ def get_cluster_centroid(features, cluster_labels):
 			centroids[cluster, feature] = features[cluster_labels==cluster, feature].mean()
 
 	return centroids
-
-
 
 def cluster_audio_with_rejection(Features, FeatureTime, 
 	n_pca_components = 5, size_threshold = 0.08):
@@ -272,6 +245,11 @@ def cluster_audio_with_rejection(Features, FeatureTime,
 	return cluster_labels, Features_reduced	
 
 def analyse_cluster_performance(cluster_labels, T_times):
+	'''with a numpy array of predicted cluster labels, as well as an array
+	of true speaker classifications from labelled data, this function calculates
+	the per-second classification accuracy of the algorithm and prints some results
+	to the terminal '''
+
 	accuracy = 100*np.mean(np.logical_not(cluster_labels) == T_times)
 	accuracy_b = 100*np.mean(cluster_labels == T_times)
 	TTR = 1 - float(np.sum(cluster_labels)) / len(cluster_labels)
@@ -308,7 +286,9 @@ def get_minute_labels(timevec):
     return m_labels, s_values
 
 def visualize_classification_vs_time(times, clusters, teacher_times, student_times):
-
+	'''with a list of predicted classifications, this function plots a cartoon of the
+	audio waveform and color-codes it with the cluster predictions for easy interpretation'''
+	
 	start = 0
 	stop = times[-1]
 	plot_times = (times >= start) & (times <= stop)
@@ -323,20 +303,23 @@ def visualize_classification_vs_time(times, clusters, teacher_times, student_tim
 
 	plt.show()
 
-	# fig, ax = plt.figure(figsize = (20,6), dpi = 60)
-	# plt.subplot(211)
-	# plt.plot(times[plot_times], student_times[plot_times], '--k')
-	# ax.set_xticks(minutes)
-	# l = ax.set_xticklabels(minute_labels, rotation = 45)
-	# plt.subplot(212)
-	# plt.plot(times[plot_times], clusters[plot_times], '--b')
-	# ax.set_xticks(minutes)
-	# l = ax.set_xticklabels(minute_labels, rotation = 45)
-
-	# plt.tight_layout()
-	# plt.show()
 
 def visualize_classification_clusters(clusters, features, teacher_times, student_times):
+	'''takes a list of predicted cluster labels "clusters" as well as the true
+	speaker labels "teacher_times" and "student_times", and uses them to visualize
+	the performance of clustering in the audio feature space specified by the numpy
+	array "features"
+
+	since there are more audio features than can be shown in a 2D or 3D plot, options are:
+	- plot only a couple of the audio features
+	- use t-SNE on the known speaker labels to find the best low-dimensional	
+		representation for plotting
+	- pretend that we don't know the true labels and use PCA to reduce to a
+		low-dimensional representation for plotting that may or may not actually
+		be the best way to separate the clusters
+
+	currently, the third option (PCA into 2 features) is used'''
+
 
 	#2D projection of feature space
 	pca = PCA(n_components = 2)
@@ -370,10 +353,6 @@ def visualize_classification_clusters(clusters, features, teacher_times, student
 	plt.tight_layout()
 	plt.show()
 
-def add_time_feature(times, features):
-	f = np.vstack((features.transpose(),times)).transpose()
-
-	return f
 
 def add_nearby_time_features(features, n_time_steps = 9 ):
 	'''to smooth out some of the fast noise in the classes,
@@ -404,6 +383,7 @@ def add_nearby_time_features(features, n_time_steps = 9 ):
 
 
 def smooth_cluster_predictions(cluster_labels, smooth_window = 5):
+	'''uses median filtering to reduce noise in the cluster predictions'''
 
 	cluster_labels_smoothed = signal.medfilt(cluster_labels, smooth_window)
 	return cluster_labels_smoothed	
@@ -412,12 +392,8 @@ def smooth_cluster_predictions(cluster_labels, smooth_window = 5):
 #	Run here
 #-------------------------------
 
-def plot_speaker_vs_time(yt_id):
-	audio_df = load_audio_data(yt_id)
-	Feature_Time = audio_df['time'].as_matrix()
-	Features = audio_df.ix[:,2:36].as_matrix().transpose()
-
 def calc_cluster_labels(yt_id = 'y2OFsG6qkBs'):
+	'''load the audio features from the SQL database and find clusters'''
 
 	#load audio features from SQL
 	audio_df = load_audio_data(yt_id)
@@ -434,6 +410,9 @@ def calc_cluster_labels(yt_id = 'y2OFsG6qkBs'):
 	return Feature_Time, cluster_labels
 
 def calc_cluster_labels_with_rejection(yt_id = 'y2OFsG6qkBs'):
+	'''Load audio features from the SQL database and find clusters,
+	checking for anomalously small clusters and attempting to remove them'''
+
 
 	#load audio features from SQL
 	audio_df = load_audio_data(yt_id)
@@ -448,7 +427,10 @@ def calc_cluster_labels_with_rejection(yt_id = 'y2OFsG6qkBs'):
 
 	return Feature_Time, cluster_labels
 
-def process_audio(yt_id = 'y2OFsG6qkBs'):
+def add_cluster_info_to_sql(yt_id = 'y2OFsG6qkBs'):
+	'''basic function to load audio data from SQL, apply the
+	clustering algorithm, and then add the cluster information 
+	to the database'''
 
 	#load audio features from SQL
 	audio_df = load_audio_data(yt_id)
@@ -463,24 +445,7 @@ def process_audio(yt_id = 'y2OFsG6qkBs'):
 	#Add the cluster labels into the SQL database
 	add_cluster_labels(yt_id, Feature_Time, Features, cluster_labels)
 
-	#Add summary statistics into a separate summary database
-	#	scl.summarize_video(yt_id)
-
 if __name__ == '__main__':
-	# video_list = [
-	# 			 'IHo_Fvx1V5I', DONE
-	# 			 'y2OFsG6qkBs', DONE
-	# 			 'kW_rOyL7xuc', DONE
-	# 			 'AeioFIXDvhM',  #time_differences is empty!
-	# 			 'G1dx947MAmk', # no audio features yet
-	# 			 'LIIU7ZuzBi4', DONE
-	# 			 '17wnvSd_Ndo', DONE
-	# 			 'l6L2tUbQ4iM', # no audio features yet
-	# 			 'oEQyAuz_hzs', DONE
-	# 			 'lwdfoZ1Z3s8', DONE
-	# 			 'fM3PqRcQ27o', DONE
-	# 			 'GD7GNO08Epg' # no audio features yet
-	# 			 ]	
 
 	video_list = [
 				'dqPjgQwoXLQ'
@@ -488,7 +453,5 @@ if __name__ == '__main__':
 
 	for video_id in video_list:
 
-		print('Processing video %s...' % video_id)
-		process_audio(video_id)
-
-		# T, C, = calc_cluster_labels_with_rejection(video_id)
+		print('Calculating clusters video %s...' % video_id)
+		add_cluster_info_to_sql(video_id)
