@@ -29,4 +29,4 @@ DATABASE_URI = 'postgres://%s:%s@%s:%s/%s' % (DATABASE['USER'],
         DATABASE['PASSWORD'],DATABASE['HOST'],DATABASE['PORT'],DATABASE['NAME'])
 ```
 
-For debugging purposes, two such settings files where used during this project. One pointing to a PostgreSQL database hosted locally on my laptop (settings.py) and one pointing to an Amazon Web Services RDS server (settingsAWS).
+For debugging purposes, two such settings files were used during this project. One pointing to a PostgreSQL database hosted locally on my laptop (settings.py) and one pointing to an Amazon Web Services RDS server (settingsAWS).
