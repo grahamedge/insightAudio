@@ -33,6 +33,30 @@ def get_table_info():
 
 	print query_results	
 
+def check_audio_data(yt_id):
+	'''checks for previously uploaded audio features for the
+	specified youtube file'''
+
+	sql_query = "SELECT count(1) FROM audio_features WHERE youtube_id = %(yt_id)s" 
+	data = {'yt_id': yt_id}
+
+	with engine.connect() as con:
+		query_results = pd.read_sql_query(sql_query, con, params = data)
+
+	return query_results
+
+def check_cluster_data(yt_id):
+	'''checks for previously uploaded audio features for the
+	specified youtube file'''
+
+	sql_query = "SELECT count(cluster_label_raw) FROM audio_features WHERE youtube_id = %(yt_id)s" 
+	data = {'yt_id': yt_id}
+
+	with engine.connect() as con:
+		query_results = pd.read_sql_query(sql_query, con, params = data)
+
+	return query_results	
+
 def load_audio_data(yt_id):
 	'''loads all of the audio information from the audio_features
 	database, returning all values in a pandas dataframe'''

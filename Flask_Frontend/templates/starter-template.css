@@ -30,6 +30,16 @@ body, html, .container-fluid {
      display: flex;
 }
 
+.img-centred{
+margin: 0 auto;
+}
+
+.col-centered{
+    float: none;
+    margin: 0 auto;
+}
+
+
 .mpld3-xaxis, .mpld3-xaxis {
 display: none;
 }

@@ -16,7 +16,7 @@ from sqlalchemy.sql import text
 from SQL import settingsAWS
 
 #homebuilt functions
-from Audio.summarize_cluster_labels import get_minute_labels, plot_clustered_waveform_html
+from Audio.visualize_cluster_labels import get_minute_labels, plot_clustered_waveform_html
 import flask_functions as ff
 
 
@@ -36,6 +36,18 @@ dbsession = Session()
 @app.route('/index')
 def index():
 	return render_template('video_input.html')
+
+@app.route('/contact')
+def contact():
+	return render_template('contact.html')
+
+@app.route('/about')
+def about():
+	return render_template('about.html')
+
+@app.route('/me')
+def me():
+	return render_template('me.html')
 
 @app.route('/video_output')
 def serve_video_features():
@@ -84,13 +96,13 @@ def serve_video_features():
 			embed_url = ('https://www.youtube.com/embed/'+str(yt_id) +
 						'?start=' + str(t_start) + 
 						'&autoplay=1')
-			t_stop = 0
+			t_stop = 10000
 	except:
 		embed_url = 'https://www.youtube.com/embed/'+str(yt_id)
 		t_start = 0
-		t_stop = 0
+		t_stop = 10000
 
-	fig_html = plot_clustered_waveform_html(yt_id)
+	fig_html = plot_clustered_waveform_html(yt_id, t_start, t_stop)
 
 
 	#could also have the plot cue up when the short interactions

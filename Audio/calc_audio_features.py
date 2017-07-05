@@ -22,6 +22,8 @@ from pyAudioAnalysis import audioBasicIO as aIO
 from pyAudioAnalysis import audioSegmentation as aS
 from pyAudioAnalysis import audioFeatureExtraction as aF
 
+from SQL.addrows import add_audio_features
+
 
 def load_data_table(filename = '/media/graham/OS/Linux Content/Youtube/teacher_audio_data.h5'):
     '''load HDF5 data'''
@@ -67,12 +69,12 @@ def get_features(Fs,x,start,stop, window = 1.0, step = 1.0):
 
 	calculation typically takes around one second per minute of audio'''
 
-    F = aF.stFeatureExtraction(x[start*Fs:stop*Fs], Fs, window*Fs, step*Fs);
+	F = aF.stFeatureExtraction(x[start*Fs:stop*Fs], Fs, window*Fs, step*Fs)
 
-    #Create a time vector appropriate for plotting the features F
-    time_F = np.linspace(start, stop, F.shape[1])
+	#Create a time vector appropriate for plotting the features F
+	time_F = np.linspace(start, stop, F.shape[1])
 
-    return F, time_F
+	return F, time_F
 
 def expand_features(features, Fs, dt, num_frames):
     '''repeat the values of the audio features in each time bin to help with smooth plotting
@@ -136,10 +138,10 @@ def get_labels():
 	return t_start, t_stop, t_type
 
 def create_label_vecs(timevec, t_start, t_stop, t_type):
-	'''with lists of times in which a given speaker starts and stops speaking
-	this function produces numpy vectors T_times and S_time that label each 
-	timestep in the time vector "timevec" with boolean values corresponding
-	to whether the specific speaker is talking at that timestep'''
+    '''with lists of times in which a given speaker starts and stops speaking
+    this function produces numpy vectors T_times and S_time that label each 
+    timestep in the time vector "timevec" with boolean values corresponding
+    to whether the specific speaker is talking at that timestep'''
     T_times = np.zeros(timevec.shape).astype(int)
     S_times = np.zeros(timevec.shape).astype(int)
 
@@ -191,16 +193,13 @@ def get_minute_labels(timevec):
 #-----------------------------------
 
 def process_audio(yt_id = 'y2OFsG6qkBs'):
-	#grab the video title (temporarily stored in HDF5)
-	HDF5_file = '/media/graham/OS/Linux Content/Youtube/teacher_audio_data.h5'
-	d = dd.io.load(HDF5_file)
-	video_num = 1
-	video_keys = d.keys()
-	print('Processing youtube video %s' % video_keys[video_num])
 
 	#analyse the audio file
-	Fs, x = load_waveform(video_keys[video_num])
-	x = get_mono(x)
+	Fs, x = load_waveform(yt_id)
+	#some audio files are downloaded as mono, others
+	# 	must be converted
+	if x.ndim == 2:
+		x = get_mono(x)
 	timevec = get_time_vec(Fs,x)
 	start = 1
 	stop = int(timevec[-1])
@@ -211,18 +210,20 @@ def process_audio(yt_id = 'y2OFsG6qkBs'):
 	step_size = 0.5
 	Features, FeatureTime = get_features(Fs,x,start, stop, window = window_size, step = step_size)
 
+	add_audio_features(yt_id, FeatureTime, Features)
+
 	return Features, FeatureTime
 
 #run on a list of youtube video files for which an audio file is available
 if __name__ == '__main__':
 	video_list = [
 				#'IHo_Fvx1V5I',
-				 'y2OFsG6qkBs',
+				 # 'y2OFsG6qkBs',
 				# 'kW_rOyL7xuc',
 				# 'AeioFIXDvhM',
 				# 'G1dx947MAmk',
 				# 'LIIU7ZuzBi4',
-				# '17wnvSd_Ndo',
+				'17wnvSd_Ndo',
 				# 'l6L2tUbQ4iM',
 				# 'oEQyAuz_hzs',
 				# 'lwdfoZ1Z3s8',

@@ -23,9 +23,8 @@ from sklearn import cluster
 
 #Homebuilt
 from SQL import settingsAWS
-from Audio import summarize_cluster_labels as scl
 from Audio import audio_functions as audiofunc
-from SQL.addrows import add_cluster_labels, create_cluster_row, add_one_cluster_label
+from SQL.addrows import add_cluster_labels, create_cluster_row
 from SQL.load_rows import load_cluster_labels, load_a_cluster_label, load_audio_data
 
 
@@ -87,10 +86,10 @@ def get_labels():
 	return t_start, t_stop, t_type
 
 def create_label_vecs(timevec, t_start, t_stop, t_type):
-	'''with lists of times in which a given speaker starts and stops speaking
-	this function produces numpy vectors T_times and S_time that label each 
-	timestep in the time vector "timevec" with boolean values corresponding
-	to whether the specific speaker is talking at that timestep'''
+    '''with lists of times in which a given speaker starts and stops speaking
+    this function produces numpy vectors T_times and S_time that label each 
+    timestep in the time vector "timevec" with boolean values corresponding
+    to whether the specific speaker is talking at that timestep'''
 
     T_times = np.zeros(timevec.shape).astype(int)
     S_times = np.zeros(timevec.shape).astype(int)
@@ -104,7 +103,7 @@ def create_label_vecs(timevec, t_start, t_stop, t_type):
             S_times = S_times + new_times
     T_times = T_times.astype(bool)
     S_times = S_times.astype(bool)
-    return T_times, S_times	
+    return T_times, S_times
 
 
 def apply_PCA(feature_matrix, n_components = 5):
@@ -115,8 +114,9 @@ def apply_PCA(feature_matrix, n_components = 5):
 	pca.fit(feature_normed)
 
 	#DONT NORMALIZE when transforming the variables...
-	#	why does this work better?
+		# why does this work better?
 	Features_reduced = pca.transform(feature_matrix)
+	# Features_reduced = pca.transform(feature_normed)
 	return Features_reduced
 
 def get_jumps(A):
@@ -149,7 +149,7 @@ def cluster_audio(Features, FeatureTime, n_pca_components = 5, n_clusters = 2):
 	returns a list of cluster labels for each timestep, as well as the list
 	of features in the reduced feature space produced by PCA'''
 
-	desired_features = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+	desired_features = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
 	feature_mask = [feature in desired_features for feature in range(Features.shape[0])]
 	Features_masked = prep_features(Features,feature_mask)
 
@@ -187,7 +187,7 @@ def cluster_audio_with_rejection(Features, FeatureTime,
 	'''performs clustering looking for 3 features, in order to find
 	2 that are useful, and one that should be merged with the other two'''
 
-	desired_features = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+	desired_features = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 	feature_mask = [feature in desired_features for feature in range(Features.shape[0])]
 	Features_masked = prep_features(Features,feature_mask)
 
@@ -439,7 +439,7 @@ def add_cluster_info_to_sql(yt_id = 'y2OFsG6qkBs'):
 	print('Total number of feature rows: %d' % len(Feature_Time))
 
 	#Cluster the audio features
-	cluster_labels, fit_features = cluster_audio(Features, Feature_Time, n_pca_components = 4)
+	cluster_labels, fit_features = cluster_audio_with_rejection(Features, Feature_Time, n_pca_components = 4)
 	cluster_labels = cluster_labels.astype(int)
 
 	#Add the cluster labels into the SQL database

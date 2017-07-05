@@ -173,6 +173,12 @@ def add_audio_features(yt_id, times, feature_matrix):
 
 	dbsession = Session()
 
+	#First remove any previous versions of audio features from this file
+	sql_query = text("DELETE FROM audio_features WHERE youtube_id = :yt_id")
+	with engine.connect() as con:
+		con.execute(sql_query, yt_id = yt_id)
+
+	#Then add the newly calculated features
 	for idx, time in enumerate(times):
 		row = create_audio_row(yt_id, time, feature_matrix[:,idx])
 		# add_audio_row(yt_id, time, audio_features[:,idx])
@@ -181,7 +187,7 @@ def add_audio_features(yt_id, times, feature_matrix):
 
 	dbsession.close()	
 
-def add_cluster_labels(dbsession, yt_id, times, feature_matrix, cluster_labels):
+def add_cluster_labels(yt_id, times, feature_matrix, cluster_labels):
 	'''Audio features may have been added to the database already without
 	any labels from the discovered clusters. This function removes any such partial data
 	and then saves the full information for time, features, and cluster_label into 

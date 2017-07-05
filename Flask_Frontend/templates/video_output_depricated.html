@@ -35,19 +35,8 @@
 
   </head>
 
-  <body>
 
-  <div class="jumbotron">
-      <div class="container">
-      	<div class='row'>
-        <div class="col-md-10" >
-        <h2></h2>
-        <h2></h2>
-        <h4>The unsupervised algorithm has produced suggestions for who is talking at each second of the video. Have a look at the color-coded waveform below the video player. Red and black shading correspond to different speakers detected by the algorithm, although which color corresponds to the teacher is not fixed.</h4>
-        </div>
-        </div>
-        </div>
-      </div>
+  <body>
 
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
@@ -74,53 +63,42 @@
 
     <br><br>
 
-    <div class="row">
-      <div class="col-md-6">
-        <div class="container-fluid">
-          <h2></h2>
-          <div class="embed-responsive embed-responsive-16by9">
-          <iframe id="video" src="{{url|safe}}" allowfullscreen></iframe>
-          </div>
-          <script src = 'https:/code.jquery-1.10.2.min.js'></script>
-          <script src = 'static/js/bootstract.min.js'></script>
-          <div id="mpld3-container">  {{fig_html | safe}}  </div>
-        </div><!-- /.container -->  
+    <div class="container">
+      <div class="starter-template">
+        <h2>Video Gateway</h2>
+        <p>Enter the desired video link</p>
       </div>
 
+    <div class = "container">
 
-      <!-- <div class="col-md-6">
-        <div class="table_container">
-        <h2></h2>
-          <table class="table table-striped vertical-center" id="summary_table">
-          <th> <td> <b>Value</b></td> </th>
-          <tr><td><b>Teacher Talk Ratio</b></td><td> {{"{0:0.2f}".format(results['teacher_talk_ratio'])}}</td></tr>
-          <tr><td><b>Number of Student Interactions</b></td><td> {{results['n_interactions']}} </td></tr>
-          <tr><td><b>Long Interactions</b></td><td> <a href="http://www.grahamedge.com/video_output?yt_id=y2OFsG6qkBs&t_start={{results['long_question_start_a']}}&t_stop={{results['long_question_stop_a']}}">{{results['n_long_interactions']}} </a></td></tr>
-          <tr><td><b>Short Questions</b></td><td> <a href="http://www.grahamedge.com/video_output?yt_id=y2OFsG6qkBs&t_start={{results['question_start_c']}}&t_stop={{results['question_stop_c']}}">{{results['n_short_interactions']}} </a></td></tr>
-          </table>
-          <script src = 'https:/code.jquery-1.10.2.min.js'></script>
-          <script src = 'static/js/bootstract.min.js'></script>
+      <form  action="/video_output" method="GET">
 
+        <div class="form-group">
+          <label for="youtube_id">Youtube ID:</label>
+          <input type="text" id="youtube_id" name='youtube_id' placeholder="e.g. ">
         </div>
-      </div>   -->
-    </div><!-- /.container -->
 
+        <div>
+          <button type="submit" class="btn btn-default btn-lg">Load video!</button>
+        </div>
 
-    <div class="row">
-      <div class="col-md-6">
-          <div class="container">
-            
-          </div><!-- /.container -->  
+      </form>
       </div>
+      <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+      <script src="static/js/bootstrap.min.js"></script>
 
-      <div class="col-md-6">
-          <div class="container">
-            
-          </div><!-- /.container -->  
-      </div>
-    </div>
+    </div> <!-- /.container-->
 
+    <h2>
+      YouTube video link: 
+      <a href="https://www.youtube.com/watch?v=y2OFsG6qkBs">
+        y2OFsG6qkBs
+      </a>
+    </h2>
+    
+    <iframe src="https://www.youtube.com/embed/y2OFsG6qkBs" width="853" height="480" frameborder="0" allowfullscreen></iframe>""")
 
+    <!-- LOAD VIDEO METRICS FROM THE TABLE, AND DISPLAY -->
 
 
     <!-- Bootstrap core JavaScript

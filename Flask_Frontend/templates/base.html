@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+  
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -37,18 +38,6 @@
 
   <body>
 
-  <div class="jumbotron">
-      <div class="container">
-      	<div class='row'>
-        <div class="col-md-10" >
-        <h2></h2>
-        <h2></h2>
-        <h4>The unsupervised algorithm has produced suggestions for who is talking at each second of the video. Have a look at the color-coded waveform below the video player. Red and black shading correspond to different speakers detected by the algorithm, although which color corresponds to the teacher is not fixed.</h4>
-        </div>
-        </div>
-        </div>
-      </div>
-
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
@@ -58,68 +47,84 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="http://www.grahamedge.com">TeacherReel</a>
+          <a class="navbar-brand" href="#">TeacherReel</a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li class="active"><a href="http://www.grahamedge.com">Home</a></li>
-            <li class='active'><a href='http://www.grahamedge.com/about'>About the Project</a></li>
-            <li class='active'><a href='http://www.grahamedge.com/me'>About Me</a></li>
+            <li class='active'><a href='http://www.grahamedge.com/video_output?yt_id=y2OFsG6qkBs'>Shannon Ireland</a></li>
+            <li class='active'><a href='http://www.grahamedge.com/video_output?yt_id=dqPjgQwoXLQ&t_start=120'>Frank Sinatra</a></li>
 
-            <li><a href="http://www.grahamedge.com/contact">Contact</a></li>
+            <li><a href="#contact">Contact</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
     </nav>
 
-    <br><br>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="container-fluid">
-          <h2></h2>
-          <div class="embed-responsive embed-responsive-16by9">
-          <iframe id="video" src="{{url|safe}}" allowfullscreen></iframe>
-          </div>
-          <script src = 'https:/code.jquery-1.10.2.min.js'></script>
-          <script src = 'static/js/bootstract.min.js'></script>
-          <div id="mpld3-container">  {{fig_html | safe}}  </div>
-        </div><!-- /.container -->  
-      </div>
-
-
-      <!-- <div class="col-md-6">
-        <div class="table_container">
-        <h2></h2>
-          <table class="table table-striped vertical-center" id="summary_table">
-          <th> <td> <b>Value</b></td> </th>
-          <tr><td><b>Teacher Talk Ratio</b></td><td> {{"{0:0.2f}".format(results['teacher_talk_ratio'])}}</td></tr>
-          <tr><td><b>Number of Student Interactions</b></td><td> {{results['n_interactions']}} </td></tr>
-          <tr><td><b>Long Interactions</b></td><td> <a href="http://www.grahamedge.com/video_output?yt_id=y2OFsG6qkBs&t_start={{results['long_question_start_a']}}&t_stop={{results['long_question_stop_a']}}">{{results['n_long_interactions']}} </a></td></tr>
-          <tr><td><b>Short Questions</b></td><td> <a href="http://www.grahamedge.com/video_output?yt_id=y2OFsG6qkBs&t_start={{results['question_start_c']}}&t_stop={{results['question_stop_c']}}">{{results['n_short_interactions']}} </a></td></tr>
-          </table>
-          <script src = 'https:/code.jquery-1.10.2.min.js'></script>
-          <script src = 'static/js/bootstract.min.js'></script>
-
-        </div>
-      </div>   -->
-    </div><!-- /.container -->
-
-
-    <div class="row">
-      <div class="col-md-6">
-          <div class="container">
-            
-          </div><!-- /.container -->  
-      </div>
-
-      <div class="col-md-6">
-          <div class="container">
-            
-          </div><!-- /.container -->  
+    <div class="jumbotron">
+      <div class="container">
+        <h1>TeacherReel</h1>
+        <p>Analysing classroom videos to find teachers that talk too much (or too little)</p>
+        <p><a class="btn btn-primary btn-lg" href="#" role="button">Learn more &raquo;</a></p>
       </div>
     </div>
 
+    <div class="container">
+
+    <div class="starter-template">
+        <h2>Video Gateway</h2>
+        <p>Enter the desired video link</p>
+    </div>
+
+    <div class = "container">
+
+      <form  action="/video_output" method="GET">
+        <div class="form-group">
+          <label for="yt_id">Youtube ID:</label>
+          <input type="text" id="yt_id" name='yt_id' placeholder="e.g. ">
+        </div>
+
+        <div>
+          <button type="submit" class="btn btn-default btn-lg">Load video!</button>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="container">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-4">
+          <h2>Shannon Ireland</h2>
+          <p><a class="btn btn-default" href="/video_output?yt_id=y2OFsG6qkBs">
+            <img src="https://img.youtube.com/vi/y2OFsG6qkBs/mqdefault.jpg" alt="Shannon Ireland">
+          </a></p>
+        </div>
+        <div class="col-md-4">
+          <h2>Frank Sinatra</h2>
+          <p><a class="btn btn-default" href="/video_output?yt_id=dqPjgQwoXLQ">
+            <img src="https://img.youtube.com/vi/dqPjgQwoXLQ/mqdefault.jpg" alt="Frank Sinatra">
+          </a></p>
+       </div>
+        <div class="col-md-4">
+          <h2>Kassandra Bigsby-Teske</h2>
+          <p><a class="btn btn-default" href="/video_output?yt_id=GD7GNO08Epg">
+            <img src="https://img.youtube.com/vi/GD7GNO08Epg/mqdefault.jpg" alt="Kassandra Bigsby-Teske">
+          </a></p>
+        </div>
+      </div>
+
+      <hr>
+
+<!--       <footer>
+        <p>&copy; 2016 Company, Inc.</p>
+      </footer> -->
+    </div> <!-- /container -->
+
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="static/js/bootstrap.min.js"></script>
+
+    </div> <!-- /.container-->
 
 
 

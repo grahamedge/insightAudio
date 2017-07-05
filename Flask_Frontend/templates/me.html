@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -37,18 +38,6 @@
 
   <body>
 
-  <div class="jumbotron">
-      <div class="container">
-      	<div class='row'>
-        <div class="col-md-10" >
-        <h2></h2>
-        <h2></h2>
-        <h4>The unsupervised algorithm has produced suggestions for who is talking at each second of the video. Have a look at the color-coded waveform below the video player. Red and black shading correspond to different speakers detected by the algorithm, although which color corresponds to the teacher is not fixed.</h4>
-        </div>
-        </div>
-        </div>
-      </div>
-
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
@@ -72,54 +61,39 @@
       </div>
     </nav>
 
-    <br><br>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="container-fluid">
-          <h2></h2>
-          <div class="embed-responsive embed-responsive-16by9">
-          <iframe id="video" src="{{url|safe}}" allowfullscreen></iframe>
-          </div>
-          <script src = 'https:/code.jquery-1.10.2.min.js'></script>
-          <script src = 'static/js/bootstract.min.js'></script>
-          <div id="mpld3-container">  {{fig_html | safe}}  </div>
-        </div><!-- /.container -->  
-      </div>
-
-
-      <!-- <div class="col-md-6">
-        <div class="table_container">
-        <h2></h2>
-          <table class="table table-striped vertical-center" id="summary_table">
-          <th> <td> <b>Value</b></td> </th>
-          <tr><td><b>Teacher Talk Ratio</b></td><td> {{"{0:0.2f}".format(results['teacher_talk_ratio'])}}</td></tr>
-          <tr><td><b>Number of Student Interactions</b></td><td> {{results['n_interactions']}} </td></tr>
-          <tr><td><b>Long Interactions</b></td><td> <a href="http://www.grahamedge.com/video_output?yt_id=y2OFsG6qkBs&t_start={{results['long_question_start_a']}}&t_stop={{results['long_question_stop_a']}}">{{results['n_long_interactions']}} </a></td></tr>
-          <tr><td><b>Short Questions</b></td><td> <a href="http://www.grahamedge.com/video_output?yt_id=y2OFsG6qkBs&t_start={{results['question_start_c']}}&t_stop={{results['question_stop_c']}}">{{results['n_short_interactions']}} </a></td></tr>
-          </table>
-          <script src = 'https:/code.jquery-1.10.2.min.js'></script>
-          <script src = 'static/js/bootstract.min.js'></script>
-
+    <div class="jumbotron">
+      <div class="container">
+        <div class="col-6 col-md-4" >
+        <img src='/static/Graham_Edge_Square.jpg' class='img-responsive' alt="Hi there!">
         </div>
-      </div>   -->
-    </div><!-- /.container -->
-
-
-    <div class="row">
-      <div class="col-md-6">
-          <div class="container">
-            
-          </div><!-- /.container -->  
-      </div>
-
-      <div class="col-md-6">
-          <div class="container">
-            
-          </div><!-- /.container -->  
+        <div class="col-6 col-md-6">
+        <h1>Graham Edge</h1>
+        <p>Data Scientist</p>
+        </div>
       </div>
     </div>
 
+    <div class="container">
+    <div class="col-md-9">
+        <h2>About Me</h2>
+        <p>I am a mathematical thinker who loves to tear apart complex concepts, messy data, and ugly equations to get at the insights hidden inside. I've trained as an experimental physicist, and I received my Ph.D in Quantum Physics in 2016 from the University of Toronto. After a brief stint of postdoctoral work, I decided that I no longer wanted to build and debug lasers so I moved to New York City to build and debug machine learning models as a Data Scientist. I'm currently a fellow at Insight Data Science.</p>
+        <!--<p>My background working with big, messy machines has grounded me over and over in what it means to really built something robust. It's not enough to solder a circuit or code a module that will only work when handled properly by a careful operator - everything needs to pass a stress test!</p> -->
+        <p>I have a lot of experience with image analysis as a result of my Ph.D research. This includes some mundane tasks like two-dimensional least-squares fitting of various functions, as well as some more interesting techniques like an application of maximum likelihood estimation for the analysis of incredibly dim and blurry images of individual atoms. During the course of my PhD research I also trained some convolutional neural networks to perform some super-resolution image processing.</p>
+
+        <p>When I'm not at my laptop I can usually be found walking my scrappy little dog Basil. I also love listening to music, cooking, and doing cryptic crosswords.</p>
+      </div>
+      <div class="col-md-3">
+          <h3><a href='/static/Graham_Edge_Resume.pdf'>My resume</a></h3>
+          <h3><a href='https://www.linkedin.com/in/grahamedge/'>LinkedIn</a></h3>
+          <h3><a href='https://github.com/grahamedge'>GitHub</a></h3>
+      </div>
+
+    </div> <!-- /container -->
+
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="static/js/bootstrap.min.js"></script>
+
+    </div> <!-- /.container-->
 
 
 

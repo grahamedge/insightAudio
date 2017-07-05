@@ -32,10 +32,10 @@ def get_labels():
 	return t_start, t_stop, t_type
 
 def create_label_vecs(timevec, t_start, t_stop, t_type):
-	'''with lists of times in which a given speaker starts and stops speaking
-	this function produces numpy vectors T_times and S_time that label each 
-	timestep in the time vector "timevec" with boolean values corresponding
-	to whether the specific speaker is talking at that timestep'''
+    '''with lists of times in which a given speaker starts and stops speaking
+    this function produces numpy vectors T_times and S_time that label each 
+    timestep in the time vector "timevec" with boolean values corresponding
+    to whether the specific speaker is talking at that timestep'''
 
     T_times = np.zeros(timevec.shape).astype(int)
     S_times = np.zeros(timevec.shape).astype(int)
@@ -404,68 +404,6 @@ def plot_waveform(yt_id = 'y2OFsG6qkBs'):
 	plt.tight_layout()
 
 	return fig	
-
-def plot_clustered_waveform_html(yt_id = 'y2OFsG6qkBs'):
-
-	#load audio features from DB
-	audio_df = load_audio_data(yt_id)
-	Feature_Time = audio_df['time'].as_matrix()
-	Features = audio_df.ix[:,2:36].as_matrix().transpose()
-	start = 1
-	stop = int(Feature_Time[-1])
-
-	#load cluster data
-	cluster_df = load_cluster_labels(yt_id)
-	cluster_times = cluster_df['time'].as_matrix()
-	cluster_labels = cluster_df['cluster_label_raw'].as_matrix()
-
-	#find the waveform times that match cluster labels
-	teacher_labels = np.logical_not(cluster_labels.astype(bool))
-	student_labels = np.logical_not(teacher_labels)
-	teacher_times = cluster_times[teacher_labels]
-	student_times = cluster_times[student_labels]
-
-	# #pick the times from t that match the times from cluster_times where
-	# cluster_labels_us = match_time_labels(time_us, cluster_times, cluster_labels)
-	# teacher_labels_us = cluster_labels_us.astype(bool)
-	# student_labels_us = np.logical_not(teacher_labels_us)
-
-	#plot the waveform in a tractable way
-	plot_start = start
-	plot_stop = stop
-	plot_times = (Feature_Time >= plot_start) & (Feature_Time <= plot_stop)
-
-	#the last data points is treated poorly by filtering steps, so don't plot
-
-	minute_labels, minute_values = get_minute_labels(Feature_Time[plot_times])
-
-	# x_filtered = audio_func.low_pass_filter(1.0, Features[0,:], tau = 1, order=1)
-	x_filtered = Features[0,:]
-	x_max = x_filtered.max()
-	x_teacher = np.zeros(x_filtered.shape)
-	x_student = np.zeros(x_filtered.shape)
-	x_teacher[teacher_labels] = x_filtered[teacher_labels]
-	x_student[student_labels] = x_filtered[student_labels]
-
-	fig = plt.figure(figsize = (8,3))
-	ax = plt.subplot(111) 
-	plt.fill_between(Feature_Time[plot_times],-x_teacher[plot_times]/x_max,x_teacher[plot_times]/x_max, facecolor='red')
-	plt.fill_between(Feature_Time[plot_times],-x_student[plot_times]/x_max,x_student[plot_times]/x_max, facecolor='black')
-	plt.ylim([-1,1])
-	plt.xlabel('', fontsize = 14)
-	plt.ylabel('', fontsize = 14)
-	ax.set_xticks(minute_values)
-	ax.set_yticks([0])
-	l = ax.set_xticklabels(minute_labels, rotation = 45, fontsize = 14	)
-	l = ax.set_yticklabels([''], fontsize = 14)
-	# fig.patch.set_visible(False)
-	ax.axis('off')
-
-	plt.tight_layout()
-
-	fig_html = mpld3.fig_to_html(fig)
-
-	return fig_html	
 
 #---------
 #Run here:
